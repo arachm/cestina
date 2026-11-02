@@ -1,6 +1,6 @@
 // Čeština obrazem: offline support. The app files come from the cache at once and are refreshed in the background;
 // photos and fonts are kept after the first view so they also work offline.
-const APP = 'cz-app-v9';
+const APP = 'cz-app-v10';
 const CORE = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(APP).then(c => c.addAll(CORE)).then(() => self.skipWaiting()));

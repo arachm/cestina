@@ -689,6 +689,16 @@ h1,h2,h3,b{font-weight:900}
 @keyframes pop{0%{transform:scale(.4);opacity:0}100%{transform:scale(1);opacity:1}}
 .top{margin-bottom:18px}.ttl{font-size:22px}
 @media (prefers-reduced-motion:reduce){#app.viewin>*,.nd.cur,.ndgo,.icard{animation:none!important}}
+
+/* v7.1 fixes */
+html,body{overflow-x:hidden;max-width:100%}
+.path{overflow-x:clip}
+.nrow{width:max-content;max-width:100%;margin-left:auto;margin-right:auto}
+.has-toast .foot{z-index:9;background:none}
+.toast{z-index:6}
+.fb .pct{flex:none}
+.has-foot .toast.ok{animation:sheetin .28s cubic-bezier(.2,.9,.3,1.2)}
+.toast{justify-content:flex-start;flex-wrap:nowrap}.toast b{white-space:nowrap}.toast span{flex:1;min-width:0;line-height:1.2}
 </style>
 </head>
 <body>
@@ -2819,7 +2829,7 @@ function vSession(){
   }
   return `<div class="sbar"><button class="icon" data-a="quit" aria-label="Zavřít">✕</button><div class="prog"><i style="width:${pct}%"></i></div>${(S.combo||0)>=3?`<span class="combo">${ico('🔥',18)}${S.combo}</span>`:''}<span class="cnt">${S.i+1}/${S.queue.length}</span>${helpBtn()}</div>
   <div class="ex" data-k="${S.i}">${b}</div>${f?foot(f):''}
-  ${S.toast?(S.toast.t==='ok'?`<div class="toast ok">${chr('klara','cheer',40)}<b>${S.toast.combo>=3?'🔥 '+S.toast.combo+'× ':''}${S.toast.w}</b>${S.toast.cz?`<span>${esc(S.toast.cz)}</span>`:''}<em>+${S.toast.xp} XP</em></div>`:`<div class="toast bad">${chr('klara','oops',40)}<b>Zkus to znovu</b></div>`):''}`;
+  ${S.toast&&(!S.toast.k||Date.now()-S.toast.k<2300||(S.toast.t==='ok'&&f&&ex.done))?(S.toast.t==='ok'?`<div class="toast ok">${chr('klara','cheer',40)}<b>${S.toast.combo>=3?'🔥 '+S.toast.combo+'× ':''}${S.toast.w}</b>${S.toast.cz?`<span>${esc(S.toast.cz)}</span>`:''}<em>+${S.toast.xp} XP</em></div>`:`<div class="toast bad">${chr('klara','oops',40)}<b>Zkus to znovu</b></div>`):''}`;
 }
 function vExplore(){
   const u=U(EX.uid), x=EX.lab&&BYID[EX.lab];
@@ -2967,10 +2977,10 @@ function vHome(){
       <button class="cta white" data-a="cont">▶ Pokračovat</button>${D?`<button class="cta ghostw" data-a="review">${ico('🔁',18)} Opakovat ${plW(D)}</button>`:''}</div></div>`
     :`<div class="cont" style="${tcs(TOWNS[8])}"><div class="cscene">${townSVG('krk')}<span class="ctown">${ico('🏆',15)} Cíl!</span></div><div class="cbody"><b>Všechny lekce máš hotové!</b>${EN('All lessons finished. Keep reviewing!')}<button class="cta white" data-a="review">${ico('🔁',18)} Opakovat</button></div></div>`;
   const map=`<div class="journey"><div class="jhead"><b>${ico('🧭',22)} Moje cesta po Česku</b><span>${visited} z 8 měst</span></div>${EN('My journey across Czechia: every town has three lessons.','en jen')}${czMap()}</div>`;
-  const offs=[0,22,-22,0];
+  const offs=[0,56,-56,0];
   const path=TOWNS.map((t,ti)=>{ const done=townDone(t), cur=t===ct, nxt=TOWNS[ti+1];
     const nodes=t.units.map(U).filter(Boolean).map((u,i)=>{ const l=u.items.filter(learned).length, pct=l/u.items.length, ud=unitDone(u), curr=n&&n.uid===u.id, stt=ud?'done':curr?'cur':pct>0?'part':'todo';
-      return `<div class="nrow" style="transform:translateX(${offs[i%4]}%)">${curr?'<span class="ndgo">ZAČÍT</span>':''}<button class="nd ${stt}" data-a="unit" data-v="${u.id}">${ringSVG(ud?1:pct,92,6,ud?'#FFC800':'var(--t2)')}<span class="ndi">${ico(u.icon,44)}</span>${ud?'<span class="nbadge">✓</span>':''}</button>
+      return `<div class="nrow" style="transform:translateX(${offs[i%4]}px)">${curr?'<span class="ndgo">ZAČÍT</span>':''}<button class="nd ${stt}" data-a="unit" data-v="${u.id}">${ringSVG(ud?1:pct,92,6,ud?'#FFC800':'var(--t2)')}<span class="ndi">${ico(u.icon,44)}</span>${ud?'<span class="nbadge">✓</span>':''}</button>
       <div class="nlab"><span>${u.lab}</span>${esc(u.t)}</div></div>`; }).join('');
     return `<section class="tsec${cur?' cur':''}${done?' done':''}" style="${tcs(t)}"><div class="thead"><div class="ttx"><span class="tlab">${unitRange(t)}${t.id==='praha'?' · A1':t.id==='brno'?' · A2':''}</span><b>${esc(t.n)}</b>${EN(t.en)}${cur?`<span class="here">${chr(samId(),'happy',24)} Jsi tady</span>`:''}</div><div class="tthumb">${townSVG(t.id)}</div>${done?'<span class="stamp">Navštíveno</span>':''}</div>
       <div class="nodes">${nodes}</div></section>${nxt?`<button class="leg" data-a="ksay" data-v="Jedeme ${esc(nxt.to)}.">${ico(nxt.tr,24)}<span>Jedeme ${esc(nxt.to)}</span>${EN('We are going to '+nxt.en)}</button>`:`<div class="leg fin">${ico('🏆',24)}<span>Cíl cesty</span>${EN('The end of the journey')}</div>`}`; }).join('');
