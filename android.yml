@@ -1,0 +1,147 @@
+name: Build Android app
+
+# Runs by itself when this file is added or changed, and from the Actions tab ("Run workflow").
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/android.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Create the Android project
+        run: |
+          set -e
+          mkdir -p twa/app/src/main/res/values twa/app/src/main/res/mipmap-xxxhdpi
+          [ -f icon-512.png ] || curl -sfL -o icon-512.png https://arachm.github.io/k7vu4skcpk/icon-512.png
+          cp icon-512.png twa/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+
+          cat > twa/settings.gradle <<'EOF'
+          pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }
+          dependencyResolutionManagement { repositories { google(); mavenCentral() } }
+          rootProject.name = 'cestina'
+          include ':app'
+          EOF
+
+          cat > twa/build.gradle <<'EOF'
+          plugins { id 'com.android.application' version '8.2.2' apply false }
+          EOF
+
+          cat > twa/gradle.properties <<'EOF'
+          android.useAndroidX=true
+          org.gradle.jvmargs=-Xmx2g
+          EOF
+
+          cat > twa/app/build.gradle <<'EOF'
+          plugins { id 'com.android.application' }
+          android {
+            namespace 'io.github.arachm.cestina'
+            compileSdk 34
+            defaultConfig {
+              applicationId 'io.github.arachm.cestina'
+              minSdk 21
+              targetSdk 34
+              versionCode Integer.parseInt(System.getenv('VCODE') ?: '1')
+              versionName '1.' + (System.getenv('VCODE') ?: '1')
+            }
+            signingConfigs {
+              release {
+                storeFile file('../../android.keystore')
+                storePassword 'cestina-app'
+                keyAlias 'cestina'
+                keyPassword 'cestina-app'
+              }
+            }
+            buildTypes {
+              release { minifyEnabled false; signingConfig signingConfigs.release }
+            }
+            compileOptions { sourceCompatibility JavaVersion.VERSION_1_8; targetCompatibility JavaVersion.VERSION_1_8 }
+            lint { checkReleaseBuilds false; abortOnError false }
+          }
+          dependencies { implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.4.0' }
+          EOF
+
+          cat > twa/app/src/main/res/values/strings.xml <<'EOF'
+          <resources>
+            <string name="app_name">Čeština</string>
+            <string name="asset_statements">[{\"relation\":[\"delegate_permission/common.handle_all_urls\"],\"target\":{\"namespace\":\"web\",\"site\":\"https://arachm.github.io\"}}]</string>
+          </resources>
+          EOF
+
+          cat > twa/app/src/main/res/values/colors.xml <<'EOF'
+          <resources>
+            <color name="bar">#FAF6EF</color>
+          </resources>
+          EOF
+
+          cat > twa/app/src/main/AndroidManifest.xml <<'EOF'
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+            <uses-permission android:name="android.permission.INTERNET"/>
+            <queries>
+              <intent><action android:name="android.support.customtabs.action.CustomTabsService"/></intent>
+            </queries>
+            <application android:label="@string/app_name" android:icon="@mipmap/ic_launcher" android:allowBackup="true">
+              <meta-data android:name="asset_statements" android:resource="@string/asset_statements"/>
+              <activity android:name="com.google.androidbrowserhelper.trusted.LauncherActivity"
+                  android:exported="true" android:label="@string/app_name"
+                  android:theme="@android:style/Theme.Translucent.NoTitleBar">
+                <meta-data android:name="android.support.customtabs.trusted.DEFAULT_URL" android:value="https://arachm.github.io/k7vu4skcpk/"/>
+                <meta-data android:name="android.support.customtabs.trusted.STATUS_BAR_COLOR" android:resource="@color/bar"/>
+                <meta-data android:name="android.support.customtabs.trusted.NAVIGATION_BAR_COLOR" android:resource="@color/bar"/>
+                <intent-filter>
+                  <action android:name="android.intent.action.MAIN"/>
+                  <category android:name="android.intent.category.LAUNCHER"/>
+                </intent-filter>
+              </activity>
+            </application>
+          </manifest>
+          EOF
+
+      - name: Create the signing key (first run only)
+        run: |
+          if [ ! -f android.keystore ]; then
+            keytool -genkeypair -v -keystore android.keystore -alias cestina -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass cestina-app -keypass cestina-app -dname "CN=Cestina, O=arachm, C=CZ"
+            git config user.name "github-actions"
+            git config user.email "github-actions@users.noreply.github.com"
+            git add android.keystore
+            git commit -m "Add Android signing key"
+            git push
+          fi
+
+      - name: Build the APK
+        env:
+          VCODE: ${{ github.run_number }}
+        run: |
+          cd twa
+          gradle assembleRelease --no-daemon --stacktrace
+          cp app/build/outputs/apk/release/app-release.apk ../cestina.apk
+
+      - name: Publish the APK as a download
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete android --yes --cleanup-tag || true
+          gh release create android cestina.apk --title "Čeština – Android app" \
+            --notes "Download cestina.apk on your phone, open it and allow installing. Build ${{ github.run_number }}."
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cestina-apk
+          path: cestina.apk
