@@ -29,8 +29,8 @@ jobs:
         run: |
           set -e
           mkdir -p twa/app/src/main/res/values twa/app/src/main/res/mipmap-xxxhdpi
-          [ -f icon-512.png ] || curl -sfL -o icon-512.png https://arachm.github.io/k7vu4skcpk/icon-512.png
-          cp icon-512.png twa/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+          [ -f icon-v2-512.png ] || curl -sfL -o icon-v2-512.png https://arachm.github.io/k7vu4skcpk/icon-v2-512.png
+          cp icon-v2-512.png twa/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
 
           cat > twa/settings.gradle <<'EOF'
           pluginManagement { repositories { google(); mavenCentral(); gradlePluginPortal() } }

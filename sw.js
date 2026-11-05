@@ -1,9 +1,11 @@
 // Čeština obrazem: offline support. The app files come from the cache at once and are refreshed in the background;
 // photos and fonts are kept after the first view so they also work offline.
-const APP = 'cz-app-v13';
-const CORE = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
+// Version 14 (5. 11. 2026) — must match APP_VER in index.html.
+const APP = 'cz-app-v14';
+const CORE = ['./', './index.html', './manifest.webmanifest', './icon-v2-192.png', './icon-v2-512.png'];
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(APP).then(c => c.addAll(CORE)).then(() => self.skipWaiting()));
+  // fetch each file fresh (not from the browser's short-term cache); a missing file must not block the update
+  e.waitUntil(caches.open(APP).then(c => Promise.all(CORE.map(u => fetch(new Request(u, { cache: 'reload' })).then(r => r.ok && c.put(u, r)).catch(() => null)))).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys()
@@ -17,7 +19,7 @@ self.addEventListener('fetch', e => {
   if (url.origin === location.origin) {
     e.respondWith(caches.open(APP).then(async c => {
       const hit = await c.match(req, { ignoreSearch: true }) || (req.mode === 'navigate' ? await c.match('./index.html') : null);
-      const net = fetch(req).then(res => { if (res.ok) c.put(req, res.clone()); return res; }).catch(() => null);
+      const net = fetch(new Request(url.href, { cache: 'no-cache', credentials: 'same-origin' })).then(res => { if (res.ok) c.put(req, res.clone()); return res; }).catch(() => null);
       return hit || (await net) || new Response('Offline', { status: 503 });
     }));
     return;
