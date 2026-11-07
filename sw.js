@@ -1,8 +1,8 @@
 // Čeština obrazem: offline support. The app files come from the cache at once and are refreshed in the background;
 // photos and fonts are kept after the first view so they also work offline.
-// Version 14 (5. 11. 2026) — must match APP_VER in index.html.
-const APP = 'cz-app-v14';
-const CORE = ['./', './index.html', './manifest.webmanifest', './icon-v2-192.png', './icon-v2-512.png'];
+// Version 15 (5. 11. 2026) — must match APP_VER in index.html.
+const APP = 'cz-app-v15';
+const CORE = ['./', './index.html', './speak-audio.js', './manifest.webmanifest', './icon-v2-192.png', './icon-v2-512.png'];
 self.addEventListener('install', e => {
   // fetch each file fresh (not from the browser's short-term cache); a missing file must not block the update
   e.waitUntil(caches.open(APP).then(c => Promise.all(CORE.map(u => fetch(new Request(u, { cache: 'reload' })).then(r => r.ok && c.put(u, r)).catch(() => null)))).then(() => self.skipWaiting()));
