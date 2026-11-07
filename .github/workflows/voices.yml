@@ -1,0 +1,27 @@
+name: Make voices
+on:
+  workflow_dispatch:
+    inputs:
+      how_many:
+        description: '10 for a quick test, or all'
+        required: true
+        default: '10'
+permissions:
+  contents: read
+jobs:
+  voices:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - name: Make the recordings
+        env:
+          KEY: ${{ secrets.AZURE_SPEECH_KEY }}
+          REGION: ${{ secrets.AZURE_SPEECH_REGION }}
+        run: python3 make_voices.py texts.json out "${{ github.event.inputs.how_many }}"
+      - name: Save them as a zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: voices
+          path: out
+          retention-days: 7
